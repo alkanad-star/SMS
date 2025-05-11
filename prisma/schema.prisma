@@ -1,0 +1,133 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Student {
+  id             Int          @id @default(autoincrement())
+  studentId      String       @unique
+  firstName      String
+  lastName       String
+  email          String       @unique
+  dateOfBirth    DateTime
+  gender         String
+  enrollmentDate DateTime     @default(now())
+  major          String?
+  gpa            Float?
+  enrollments    Enrollment[]
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+}
+
+model Instructor {
+  id           Int      @id @default(autoincrement())
+  employeeId   String   @unique
+  firstName    String
+  lastName     String
+  email        String   @unique
+  department   String
+  dateOfHire   DateTime
+  specialties  String?
+  classes      Class[]
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Course {
+  id               Int      @id @default(autoincrement())
+  courseCode       String   @unique
+  title            String
+  description      String?
+  creditHours      Int
+  category         String
+  level            String
+  prerequisiteId   Int?
+  prerequisite     Course?  @relation("CoursePrerequisite", fields: [prerequisiteId], references: [id])
+  followupCourses  Course[] @relation("CoursePrerequisite")
+  classes          Class[]
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
+
+model Class {
+  id           Int          @id @default(autoincrement())
+  classCode    String       @unique
+  courseId     Int
+  course       Course       @relation(fields: [courseId], references: [id])
+  instructorId Int
+  instructor   Instructor   @relation(fields: [instructorId], references: [id])
+  semester     String
+  year         Int
+  startDate    DateTime
+  endDate      DateTime
+  schedule     String
+  room         String
+  enrollments  Enrollment[]
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+}
+
+model Enrollment {
+  id        Int      @id @default(autoincrement())
+  studentId Int
+  student   Student  @relation(fields: [studentId], references: [id])
+  classId   Int
+  class     Class    @relation(fields: [classId], references: [id])
+  grade     Float?
+  status    String   @default("ENROLLED") // ENROLLED, COMPLETED, WITHDRAWN, FAILED
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([studentId, classId])
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  password      String?
+  image         String?
+  role          String    @default("USER") // USER, ADMIN
+  accounts      Account[]
+  sessions      Session[]
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
